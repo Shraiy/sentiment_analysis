@@ -3,7 +3,7 @@ from transformers import AutoTokenizer, AutoModelForSequenceClassification
 import torch
 
 # Load model and tokenizer
-model_path = r"D:\sentiment_analysis\saved_models\distilbert-base-uncased"  # use raw string or escape backslashes
+model_path = "saved_models/distilbert-base-uncased"
 tokenizer = AutoTokenizer.from_pretrained(model_path)
 model = AutoModelForSequenceClassification.from_pretrained(model_path)
 model.eval()
