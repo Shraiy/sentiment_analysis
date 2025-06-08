@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sentiment Analyzer</title>
+  <style>
+    /* Reset & base */
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: #333;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+    /* Container */
+    .container {
+      background: #fff;
+      max-width: 500px;
+      width: 100%;
+      border-radius: 12px;
+      padding: 30px 40px;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.15);
+      text-align: center;
+      transition: transform 0.3s ease;
+    }
+    .container:hover {
+      transform: translateY(-5px);
+    }
+    h1 {
+      margin-bottom: 25px;
+      color: #5a4fcf;
+      font-weight: 700;
+      font-size: 2.4rem;
+      letter-spacing: 1px;
+    }
+
+    /* Form styles */
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      text-align: left;
+    }
+    label {
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: #555;
+      display: block;
+    }
+    input[type="text"],
+    input[type="number"],
+    textarea {
+      padding: 12px 15px;
+      font-size: 1rem;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      transition: border-color 0.3s ease;
+      resize: vertical;
+      width: 100%;
+      font-family: inherit;
+    }
+    input[type="text"]:focus,
+    input[type="number"]:focus,
+    textarea:focus {
+      border-color: #667eea;
+      outline: none;
+      box-shadow: 0 0 8px rgba(102, 126, 234, 0.4);
+    }
+    textarea {
+      min-height: 100px;
+    }
+    input[type="number"] {
+      max-width: 100px;
+    }
+
+    /* Button */
+    button {
+      background: #5a4fcf;
+      color: white;
+      font-weight: 700;
+      font-size: 1.1rem;
+      padding: 14px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      width: 100%;
+      letter-spacing: 0.05em;
+      box-shadow: 0 5px 15px rgba(90, 79, 207, 0.4);
+    }
+    button:hover {
+      background: #473db0;
+      box-shadow: 0 7px 20px rgba(71, 61, 176, 0.6);
+    }
+    button:disabled {
+      background: #bbb;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    /* Output */
+    .result {
+      margin-top: 25px;
+      font-size: 1.3rem;
+      font-weight: 700;
+      padding: 15px 20px;
+      border-radius: 10px;
+      display: inline-block;
+      min-width: 140px;
+      user-select: none;
+    }
+    .positive {
+      color: #2f855a;
+      background: #c6f6d5;
+      border: 2px solid #2f855a;
+    }
+    .neutral {
+      color: #718096;
+      background: #e2e8f0;
+      border: 2px solid #718096;
+    }
+    .negative {
+      color: #c53030;
+      background: #fed7d7;
+      border: 2px solid #c53030;
+    }
+
+    /* Responsive */
+    @media (max-width: 600px) {
+      .container {
+        padding: 25px 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container" role="main" aria-labelledby="title">
+    <h1 id="title">🧠 Sentiment Analyzer</h1>
+    <form id="sentiment-form" aria-describedby="desc">
+      <label for="summary">Review Summary</label>
+      <input type="text" id="summary" name="summary" placeholder="Brief summary..." required autocomplete="off" />
+
+      <label for="review">Full Review</label>
+      <textarea id="review" name="review" placeholder="Write your detailed review here..." required></textarea>
+
+      <label for="rating">Rating (1-5)</label>
+      <input type="number" id="rating" name="rating" min="1" max="5" placeholder="e.g. 4" required />
+
+      <button type="submit" id="submit-btn">Analyze Sentiment</button>
+    </form>
+
+    <div id="result" role="alert" aria-live="polite" style="margin-top:20px;"></div>
+  </div>
+
+  <script>
+    const form = document.getElementById('sentiment-form');
+    const resultDiv = document.getElementById('result');
+    const submitBtn = document.getElementById('submit-btn');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      // Disable button while processing
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Analyzing...';
+      resultDiv.textContent = '';
+      resultDiv.className = '';
+
+      // Prepare data
+      const data = {
+        review_summary: form.summary.value.trim(),
+        review_text: form.review.value.trim(),
+        rating: form.rating.value.trim(),
+      };
+
+      try {
+        const response = await fetch('/predict', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data),
+        });
+
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+
+        const result = await response.json();
+
+        // Show result with color-coded styling
+        let sentimentClass = '';
+        if (result.sentiment.toLowerCase() === 'positive') sentimentClass = 'positive';
+        else if (result.sentiment.toLowerCase() === 'neutral') sentimentClass = 'neutral';
+        else if (result.sentiment.toLowerCase() === 'negative') sentimentClass = 'negative';
+
+        resultDiv.textContent = `Sentiment: ${result.sentiment}`;
+        resultDiv.className = `result ${sentimentClass}`;
+      } catch (error) {
+        resultDiv.textContent = 'Error: Could not analyze sentiment.';
+        resultDiv.className = 'result negative';
+        console.error('Error:', error);
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Analyze Sentiment';
+      }
+    });
+  </script>
+</body>
+</html>
